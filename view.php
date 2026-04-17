@@ -18,7 +18,7 @@
  * Main view for mod_mathdoku.
  *
  * @package   mod_mathdoku
- * @copyright 2026 Álvaro Ángel Martínez <alvaroangelm@iepedacitodecielo.edu.co>
+ * @copyright 2026 Álvaro Ángel Molina <luisernestomarceloberni@gmail.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU GPL v3 or later
  */
 
