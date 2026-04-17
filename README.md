@@ -77,6 +77,30 @@ The puzzle solution is stored server-side and is never sent to the browser. All 
 
 ---
 
+## Publishing to moodle.org
+
+### Building the release ZIP
+
+The ZIP root folder must be named `mathdoku` (not `mod_mathdoku`):
+
+```bash
+cd /path/to/parent/of/mod_mathdoku
+cp -r mod_mathdoku mathdoku
+zip -r mathdoku-X.Y.Z.zip mathdoku --exclude "mathdoku/.git/*"
+rm -rf mathdoku
+```
+
+### Registering / updating on moodle.org
+
+1. Go to **https://moodle.org/plugins/** → log in → open the sidebar (► toggle, top-right of content area) → **Register a new plugin**.
+2. Upload the ZIP. After the initial registration, fill in the plugin details page:
+   - **Source control URL:** `https://github.com/alvaretto/mathdoku` (no `.git` suffix)
+   - **Bug tracker URL:** `https://github.com/alvaretto/mathdoku/issues`
+3. New **versions** can be uploaded at any time from the **Versions** tab — they do not require a new approval cycle.
+4. The initial approval (visibility in the public directory and Moodle's plugin installer) is tracked at **CONTRIB-10468**.
+
+---
+
 ## License
 
 GNU General Public License v3 or later — see [LICENSE](https://www.gnu.org/licenses/gpl-3.0.html).
