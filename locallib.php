@@ -380,7 +380,7 @@ function mathdoku_render_result(stdClass $mathdoku, stdClass $attempt, stdClass 
     }
 
     echo '<p class="mathdoku-score">'
-        . get_string('youscored', 'mathdoku', (int) $attempt->grade)
+        . get_string('youscored', 'mathdoku', number_format($attempt->grade * 5 / 100, 1))
         . '</p>';
 
     $all_finished = $DB->get_records('mathdoku_attempts', [
@@ -449,10 +449,10 @@ function mathdoku_render_attempts_summary(stdClass $mathdoku, array $finished_at
            . '<th>' . get_string('grade') . '</th>'
            . '</tr></thead><tbody>';
     foreach ($finished_attempts as $a) {
-        $html .= '<tr><td>' . $a->attempt . '</td><td>' . (int) $a->grade . ' / 100</td></tr>';
+        $html .= '<tr><td>' . $a->attempt . '</td><td>' . number_format($a->grade * 5 / 100, 1) . ' / 5</td></tr>';
     }
     $html .= '</tbody></table>';
-    $html .= '<p><strong>' . ($method_labels[$method] ?? '') . ':</strong> ' . round($final, 1) . ' / 100</p>';
+    $html .= '<p><strong>' . ($method_labels[$method] ?? '') . ':</strong> ' . number_format($final * 5 / 100, 1) . ' / 5</p>';
     $html .= '</div>';
     return $html;
 }

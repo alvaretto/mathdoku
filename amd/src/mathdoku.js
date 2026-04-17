@@ -187,15 +187,30 @@ define([], function() {
         }
 
         var autoSaveTimer = null;
+        function doSave() {
+            var form = document.getElementById('mathdoku-form');
+            if (!form) { return; }
+            var fd = new FormData(form);
+            fd.set('action', 'save');
+            fetch(form.action, {method: 'POST', body: fd}).catch(function() {});
+        }
+
         function scheduleAutoSave() {
             if (autoSaveTimer) { clearTimeout(autoSaveTimer); }
-            autoSaveTimer = setTimeout(function() {
+            autoSaveTimer = setTimeout(doSave, 2000);
+        }
+
+        function setupBeforeUnload() {
+            window.addEventListener('beforeunload', function() {
+                if (autoSaveTimer) { clearTimeout(autoSaveTimer); }
                 var form = document.getElementById('mathdoku-form');
                 if (!form) { return; }
                 var fd = new FormData(form);
                 fd.set('action', 'save');
-                fetch(form.action, {method: 'POST', body: fd}).catch(function() {});
-            }, 5000);
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon(form.action, fd);
+                }
+            });
         }
 
         function setupSubmitButton() {
@@ -247,6 +262,7 @@ define([], function() {
         buildGrid();
         if (!readonly) {
             setupSubmitButton();
+            setupBeforeUnload();
             highlightDuplicates();
         }
     }
