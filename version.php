@@ -23,7 +23,7 @@
  */
 
 $plugin->version      = 2026041703;
-$plugin->requires     = 2023100900; // Moodle 4.3+.
+$plugin->requires     = 2023041800; // Moodle 4.2+.
 $plugin->component    = 'mod_mathdoku';
 $plugin->maturity     = MATURITY_BETA;
 $plugin->release      = '1.0.2-beta';
