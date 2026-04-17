@@ -11,7 +11,7 @@
  * @param {Object} D           Puzzle data (size, cages, studentGrid, readonly).
  * @param {string} containerId ID of the target container element.
  */
-window.mathdokuRender = function (D, containerId) {
+window.mathdokuRender = function(D, containerId) {
     'use strict';
 
     var SIZE = D.size || 9;
@@ -25,8 +25,8 @@ window.mathdokuRender = function (D, containerId) {
 
     // Build cell→cage index map
     var cellCageIdx = {};
-    cages.forEach(function (cage, idx) {
-        cage.cells.forEach(function (cell) {
+    cages.forEach(function(cage, idx) {
+        cage.cells.forEach(function(cell) {
             cellCageIdx[cell[0] + ',' + cell[1]] = idx;
         });
     });
@@ -49,7 +49,7 @@ window.mathdokuRender = function (D, containerId) {
      * @returns {Array} The [row, col] pair of the top-left cell.
      */
     function topLeftOf(cage) {
-        return cage.cells.reduce(function (best, cell) {
+        return cage.cells.reduce(function(best, cell) {
             if (cell[0] < best[0] || (cell[0] === best[0] && cell[1] < best[1])) {
                 return cell;
             }
@@ -118,9 +118,13 @@ window.mathdokuRender = function (D, containerId) {
                 if (!isGiven && tl[0] === r && tl[1] === c) {
                     var label = document.createElement('span');
                     label.className = 'cage-label';
-                    label.textContent = cage.op === null
-                        ? cage.target
-                        : (cage.show_op ? cage.target + opSymbol(cage.op) : cage.target + '?');
+                    if (cage.op === null) {
+                        label.textContent = cage.target;
+                    } else if (cage.show_op) {
+                        label.textContent = cage.target + opSymbol(cage.op);
+                    } else {
+                        label.textContent = cage.target + '?';
+                    }
                     td.appendChild(label);
                 }
 
@@ -173,14 +177,14 @@ window.mathdokuRender = function (D, containerId) {
         input.value = savedVal > 0 ? savedVal : '';
         input.autocomplete = 'off';
 
-        input.addEventListener('input', function (e) {
+        input.addEventListener('input', function(e) {
             var v = e.target.value.replace(/[^1-9]/g, '');
             e.target.value = v.length ? v[v.length - 1] : '';
             highlightDuplicates();
             scheduleAutoSave();
         });
 
-        input.addEventListener('keydown', function (e) {
+        input.addEventListener('keydown', function(e) {
             var row = +e.target.closest('td').dataset.row;
             var col = +e.target.closest('td').dataset.col;
             var nr = row;
@@ -227,14 +231,14 @@ window.mathdokuRender = function (D, containerId) {
         if (autoSaveTimer) {
             clearTimeout(autoSaveTimer);
         }
-        autoSaveTimer = setTimeout(function () {
+        autoSaveTimer = setTimeout(function() {
             var form = document.getElementById('mathdoku-form');
             if (!form) {
                 return;
             }
             var fd = new FormData(form);
             fd.set('action', 'save');
-            fetch(form.action, {method: 'POST', body: fd}).catch(function () {
+            fetch(form.action, {method: 'POST', body: fd}).catch(function() {
                 // Ignore save errors silently.
             });
         }, 5000);
@@ -248,7 +252,7 @@ window.mathdokuRender = function (D, containerId) {
         if (!btn) {
             return;
         }
-        btn.addEventListener('click', function () {
+        btn.addEventListener('click', function() {
             var msg = '¿Confirmas calificar ahora? No podrás modificar tus respuestas.';
             // eslint-disable-next-line no-alert
             if (!window.confirm(msg)) {
@@ -318,7 +322,7 @@ window.mathdokuRender = function (D, containerId) {
     }
 
     // Run immediately — the DOM element exists because this call comes from
-    // an inline <script> placed AFTER the element in the HTML.
+    // An inline <script> placed AFTER the element in the HTML.
     buildGrid();
     if (!readonly) {
         setupSubmitButton();

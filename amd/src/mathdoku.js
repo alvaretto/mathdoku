@@ -244,7 +244,7 @@ define([], function () {
             return input;
         }
 
-        // ── localStorage helpers ──────────────────────────────────────────────
+        // LocalStorage helpers.
 
         /**
          * Read the current grid values from the DOM inputs.
@@ -276,8 +276,8 @@ define([], function () {
                     grid: readGridFromDOM(),
                     ts: Date.now()
                 }));
-            } catch (e) {
-                // Ignore storage errors silently.
+            } catch (ignore) {
+                // Storage errors are silently ignored.
             }
         }
 
@@ -293,7 +293,7 @@ define([], function () {
             try {
                 var raw = localStorage.getItem(LS_KEY);
                 return raw ? (JSON.parse(raw).grid || null) : null;
-            } catch (e) {
+            } catch (ignore) {
                 return null;
             }
         }
@@ -326,7 +326,7 @@ define([], function () {
             }
         }
 
-        // ── Server save ───────────────────────────────────────────────────────
+        // Server save.
 
         var autoSaveTimer = null;
 
@@ -396,8 +396,8 @@ define([], function () {
                 if (LS_KEY) {
                     try {
                         localStorage.removeItem(LS_KEY);
-                    } catch (e) {
-                        // Ignore storage errors silently.
+                    } catch (ignore) {
+                        // Storage errors are silently ignored.
                     }
                 }
                 document.getElementById('mathdoku-action').value = 'submit';

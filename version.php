@@ -22,9 +22,9 @@
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU GPL v3 or later
  */
 
-$plugin->version      = 2026041700;
+$plugin->version      = 2026041702;
 $plugin->requires     = 2023100900; // Moodle 4.3+.
 $plugin->component    = 'mod_mathdoku';
 $plugin->maturity     = MATURITY_BETA;
-$plugin->release      = '1.0.1-beta';
+$plugin->release      = '1.0.2-beta';
 $plugin->dependencies = [];
