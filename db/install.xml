@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/mathdoku/db" VERSION="2026041600"
+    COMMENT="XMLDB file for mod_mathdoku"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+    <TABLE NAME="mathdoku" COMMENT="Each record is one mathdoku activity instance">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true"/>
+        <FIELD NAME="intro" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="difficulty" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1"/>
+        <FIELD NAME="maxattempts" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" COMMENT="0 = unlimited"/>
+        <FIELD NAME="grademethod" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" COMMENT="1=best 2=average 3=last 4=first"/>
+        <FIELD NAME="showsolution" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="grade" TYPE="number" LENGTH="10" NOTNULL="false" DECIMALS="5" DEFAULT="100"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="course" TYPE="foreign" FIELDS="course" REFTABLE="course" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="mathdoku_attempts" COMMENT="Student attempts on mathdoku puzzles">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="mathdokuid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true"/>
+        <FIELD NAME="attempt" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" COMMENT="Attempt number for this user on this activity"/>
+        <FIELD NAME="puzzleseed" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="puzzledata" TYPE="text" NOTNULL="true" COMMENT="JSON cage layout sent to client (no solution)"/>
+        <FIELD NAME="solution" TYPE="text" NOTNULL="true" COMMENT="JSON correct solution grid, never sent to client"/>
+        <FIELD NAME="studentgrid" TYPE="text" NOTNULL="false" COMMENT="JSON student filled grid"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timefinished" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0"/>
+        <FIELD NAME="state" TYPE="char" LENGTH="16" NOTNULL="true" DEFAULT="inprogress"/>
+        <FIELD NAME="grade" TYPE="number" LENGTH="10" NOTNULL="false" DECIMALS="5"/>
+        <FIELD NAME="correct" TYPE="int" LENGTH="1" NOTNULL="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="mathdokuid" TYPE="foreign" FIELDS="mathdokuid" REFTABLE="mathdoku" REFFIELDS="id"/>
+        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="mathdoku_userid" UNIQUE="false" FIELDS="mathdokuid, userid"/>
+        <INDEX NAME="mathdoku_userid_attempt" UNIQUE="true" FIELDS="mathdokuid, userid, attempt"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

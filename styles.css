@@ -1,0 +1,132 @@
+/* ── MathDoku plugin styles ──────────────────────────────────────────────── */
+
+#mathdoku-wrapper {
+    max-width: 640px;
+    margin: 20px auto;
+}
+
+.mathdoku-grid {
+    border-collapse: collapse;
+    margin: 0 auto 24px;
+    table-layout: fixed;
+    width: 100%;
+    max-width: 540px;
+}
+
+.mathdoku-grid td {
+    position: relative;
+    padding: 2px;
+    text-align: center;
+    vertical-align: middle;
+    box-sizing: border-box;
+    width: 60px;
+    height: 60px;
+}
+
+/* Cage label — target + operation in top-left corner of each cage */
+.cage-label {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    font-size: 0.58em;
+    font-weight: 700;
+    color: #222;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+}
+
+/* Editable cell input */
+.cell-input {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #1a1a8c;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    cursor: pointer;
+    box-sizing: border-box;
+    padding-top: 10px; /* avoid overlap with cage label */
+}
+
+.cell-input:focus {
+    background: rgba(255, 230, 0, 0.45);
+}
+
+.cell-input.cell-error {
+    color: #cc0000;
+    background: rgba(220, 0, 0, 0.12);
+}
+
+/* Given cell — 1-cell cage, value fixed and pre-filled */
+.cell-given {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 1.7em;
+    font-weight: 800;
+    color: #111;
+}
+
+/* Read-only value (result page) */
+.cell-value {
+    display: block;
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #1a1a8c;
+    padding-top: 14px;
+}
+
+/* Controls bar */
+.mathdoku-controls {
+    text-align: center;
+    margin: 12px 0 24px;
+}
+
+/* Result page */
+.mathdoku-score {
+    text-align: center;
+    font-size: 1.2em;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.mathdoku-teacher-summary {
+    padding: 12px;
+    background: #f0f4ff;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+/* ── Responsive (tablets ~600 px wide) ────────────────────────────────────── */
+@media (max-width: 600px) {
+    .mathdoku-grid {
+        max-width: 100%;
+    }
+
+    .mathdoku-grid td {
+        width: calc((100vw - 32px) / 9);
+        height: calc((100vw - 32px) / 9);
+    }
+
+    .cell-input {
+        font-size: 1em;
+    }
+
+    .cell-value {
+        font-size: 1em;
+    }
+
+    .cage-label {
+        font-size: 0.48em;
+    }
+}
