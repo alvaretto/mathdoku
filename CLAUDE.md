@@ -42,11 +42,31 @@ Guía de mantenimiento para Claude Code. Stack: PHP 8.1+, Moodle 4.3+, AMD JS (d
    ```
    El tag debe existir en GitHub ANTES de actualizar el formulario en moodle.org.
 
-4. **Actualizar moodle.org**
-   - Ir a https://moodle.org/plugins/mod_mathdoku → pestaña **Versions**
-   - "Add a new version" o "Edit version"
-   - El formulario NO tiene campo de subida de ZIP: moodle.org descarga desde GitHub usando el tag VCS
-   - Indicar el tag (ej. `v1.0.2-beta`) y guardar
+4. **Construir ZIP**
+   ```bash
+   # Desde el directorio PADRE del repo (no dentro de mod_mathdoku)
+   cp -r mod_mathdoku mathdoku
+   zip -r mathdoku-X.Y.Z.zip mathdoku/ \
+     --exclude "mathdoku/.git/*" \
+     --exclude "mathdoku/tests/*" \
+     --exclude "mathdoku/.gitignore" \
+     --exclude "mathdoku/CLAUDE.md"
+   rm -rf mathdoku
+   # README.md SÍ se incluye (release notes en moodle.org)
+   # tests/ SÍ se excluye (evita PHPCS sobre tests)
+   ```
+
+5. **Publicar en moodle.org**
+   - Ir a https://moodle.org/plugins/mod_mathdoku → pestaña **Developer zone**
+   - Sección "Releasing a new version" → botón **"Add a new version"**
+   - Subir el ZIP construido en el paso anterior
+   - **NUNCA usar "Edit version"** para publicar código nuevo: el checker automático NO se re-ejecuta al editar, solo al subir un ZIP nuevo via "Add a new version"
+   - La pestaña "Versions" solo tiene "Edit details" y "Hide" — no permite crear versiones
+
+   **Notas críticas:**
+   - El formulario pre-selecciona Moodle 4.2 y no permite deseleccionarla → mantener `$plugin->requires = 2023041800` en `version.php`
+   - Si un build number ya fue usado (aunque sea editando una versión existente), usar el siguiente XX disponible
+   - El tag git debe existir en GitHub ANTES de completar el formulario
 
 ---
 
@@ -95,6 +115,21 @@ ssh alvaretto@192.168.0.19 "sudo mkdir -p /var/www/moodle/public/mod/mathdoku/nu
 | PHPCS: MOODLE_INTERNAL en clase autoloaded | La comprobación no corresponde en `classes/` | Eliminar `defined('MOODLE_INTERNAL') \|\| die();` de clases PSR-4 |
 | Test falla con rutas relativas | Test copiado a `/tmp`, `__DIR__` resuelve a `/tmp` | Copiar test a `/var/www/moodle/public/mod/mathdoku/tests/` |
 | `php` no encontrado en local | PHP no instalado en Manjaro (máquina de desarrollo) | Ejecutar tests vía SSH en el servidor |
+| Checker muestra errores del ZIP anterior | Se usó "Edit version" en lugar de crear versión nueva | Usar SIEMPRE "Add a new version" en Developer zone para publicar código corregido |
+| "Add a new version" no aparece en pestaña Versions | La opción está en Developer zone, no en Versions | Plugins → MathDoku → Developer zone → "Releasing a new version" → "Add a new version" |
+| "There is already a plugin version with this version number" | Build number ya registrado por edición previa | Incrementar XX del build: `2026041701 → 2026041702 → 2026041703` |
+| "will not install on Moodle 4.2" al crear versión | `$plugin->requires = 2023100900` (Moodle 4.3) pero formulario fuerza 4.2 | Usar `$plugin->requires = 2023041800` (Moodle 4.2) en version.php |
+| Warning "no README file found" en moodle.org | README.md fue excluido del ZIP | Incluir README.md en el ZIP (no excluirlo) |
+
+---
+
+## Historial de versiones publicadas
+
+| Versión | Build number | Fecha | Notas |
+|---------|-------------|-------|-------|
+| v1.0.0-beta | 2026041600 | 2026-04-17 | Release inicial. ZIP con errores PHPCS. Ticket CONTRIB-10468. |
+| v1.0.1-beta | 2026041701 | 2026-04-17 | Solo metadatos editados (Edit version). Checker no re-corrió — no sirve. |
+| v1.0.2-beta | 2026041703 | 2026-04-17 | ZIP nuevo subido via "Add a new version". Código PHPCS corregido. |
 
 ---
 
