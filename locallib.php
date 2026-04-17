@@ -280,6 +280,7 @@ function mathdoku_render_puzzle(stdClass $mathdoku, stdClass $attempt, stdClass 
         'studentGrid' => $student_grid,
         'readonly'    => false,
         'confirmMsg'  => get_string('confirmsubmit', 'mathdoku'),
+        'attemptId'   => (int) $attempt->id,
     ];
 
     $PAGE->requires->js_call_amd('mod_mathdoku/mathdoku', 'render',

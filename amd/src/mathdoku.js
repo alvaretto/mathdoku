@@ -36,6 +36,7 @@ define([], function() {
         var SIZE     = D.size || 9;
         var cages    = D.cages || [];
         var readonly = D.readonly || false;
+        var LS_KEY   = D.attemptId ? 'mathdoku_grid_' + D.attemptId : null;
 
         var CAGE_COLORS = [
             '#ffd6d6', '#d6f0ff', '#d6ffd6', '#fff0d6',
@@ -159,6 +160,7 @@ define([], function() {
                 var v = this.value.replace(/[^1-9]/g, '');
                 this.value = v.length ? v[v.length - 1] : '';
                 highlightDuplicates();
+                saveToLS();
                 scheduleAutoSave();
             });
 
@@ -186,6 +188,59 @@ define([], function() {
             return input;
         }
 
+        // ── localStorage helpers ──────────────────────────────────────────────
+
+        function readGridFromDOM() {
+            var g = {};
+            for (var r = 0; r < SIZE; r++) {
+                g[r] = {};
+                for (var c = 0; c < SIZE; c++) {
+                    var inp = document.querySelector(
+                        '#' + containerId + ' input[name="cell[r' + r + 'c' + c + ']"]');
+                    g[r][c] = inp ? (parseInt(inp.value, 10) || 0) : 0;
+                }
+            }
+            return g;
+        }
+
+        function saveToLS() {
+            if (!LS_KEY) { return; }
+            try {
+                localStorage.setItem(LS_KEY, JSON.stringify({
+                    grid: readGridFromDOM(),
+                    ts: Date.now()
+                }));
+            } catch (e) {}
+        }
+
+        function loadFromLS() {
+            if (!LS_KEY) { return null; }
+            try {
+                var raw = localStorage.getItem(LS_KEY);
+                return raw ? (JSON.parse(raw).grid || null) : null;
+            } catch (e) { return null; }
+        }
+
+        function gridHasValues(grid) {
+            if (!grid) { return false; }
+            for (var r in grid) {
+                for (var c in grid[r]) {
+                    if (grid[r][c] > 0) { return true; }
+                }
+            }
+            return false;
+        }
+
+        // Use localStorage as fallback when server has no saved progress.
+        if (!gridHasValues(D.studentGrid)) {
+            var lsGrid = loadFromLS();
+            if (gridHasValues(lsGrid)) {
+                D.studentGrid = lsGrid;
+            }
+        }
+
+        // ── Server save ───────────────────────────────────────────────────────
+
         var autoSaveTimer = null;
         function doSave() {
             var form = document.getElementById('mathdoku-form');
@@ -203,6 +258,7 @@ define([], function() {
         function setupBeforeUnload() {
             window.addEventListener('beforeunload', function() {
                 if (autoSaveTimer) { clearTimeout(autoSaveTimer); }
+                saveToLS();
                 var form = document.getElementById('mathdoku-form');
                 if (!form) { return; }
                 var fd = new FormData(form);
@@ -220,6 +276,7 @@ define([], function() {
                 var msg = D.confirmMsg || '';
                 if (msg && !window.confirm(msg)) { return; }
                 if (autoSaveTimer) { clearTimeout(autoSaveTimer); }
+                if (LS_KEY) { try { localStorage.removeItem(LS_KEY); } catch(e) {} }
                 document.getElementById('mathdoku-action').value = 'submit';
                 document.getElementById('mathdoku-form').submit();
             });
