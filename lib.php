@@ -22,16 +22,14 @@
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /** Grade is the highest across all attempts. */
-define('MATHDOKU_GRADE_BEST',    1);
+define('MATHDOKU_GRADE_BEST', 1);
 /** Grade is the average across all attempts. */
 define('MATHDOKU_GRADE_AVERAGE', 2);
 /** Grade is taken from the most recent attempt. */
-define('MATHDOKU_GRADE_LAST',    3);
+define('MATHDOKU_GRADE_LAST', 3);
 /** Grade is taken from the first attempt. */
-define('MATHDOKU_GRADE_FIRST',   4);
+define('MATHDOKU_GRADE_FIRST', 4);
 
 /**
  * Add a new mathdoku instance to the database.
@@ -43,9 +41,15 @@ define('MATHDOKU_GRADE_FIRST',   4);
 function mathdoku_add_instance(stdClass $data, $mform = null): int {
     global $DB;
     $data->timemodified = time();
-    if (!isset($data->grade))       { $data->grade       = 100; }
-    if (!isset($data->maxattempts)) { $data->maxattempts = 1;   }
-    if (!isset($data->grademethod)) { $data->grademethod = MATHDOKU_GRADE_BEST; }
+    if (!isset($data->grade)) {
+        $data->grade = 100;
+    }
+    if (!isset($data->maxattempts)) {
+        $data->maxattempts = 1;
+    }
+    if (!isset($data->grademethod)) {
+        $data->grademethod = MATHDOKU_GRADE_BEST;
+    }
     $id = $DB->insert_record('mathdoku', $data);
     $data->id = $id;
     mathdoku_grade_item_update($data);
@@ -126,8 +130,16 @@ function mathdoku_grade_item_update(stdClass $mathdoku, $grades = null): int {
         $grades = null;
     }
 
-    return grade_update('mod/mathdoku', $mathdoku->course, 'mod', 'mathdoku',
-                        $mathdoku->id, 0, $grades, $params);
+    return grade_update(
+        'mod/mathdoku',
+        $mathdoku->course,
+        'mod',
+        'mathdoku',
+        $mathdoku->id,
+        0,
+        $grades,
+        $params
+    );
 }
 
 /**
@@ -139,8 +151,16 @@ function mathdoku_grade_item_update(stdClass $mathdoku, $grades = null): int {
 function mathdoku_grade_item_delete(stdClass $mathdoku): int {
     global $CFG;
     require_once($CFG->libdir . '/gradelib.php');
-    return grade_update('mod/mathdoku', $mathdoku->course, 'mod', 'mathdoku',
-                        $mathdoku->id, 0, null, ['deleted' => 1]);
+    return grade_update(
+        'mod/mathdoku',
+        $mathdoku->course,
+        'mod',
+        'mathdoku',
+        $mathdoku->id,
+        0,
+        null,
+        ['deleted' => 1]
+    );
 }
 
 /**
@@ -154,14 +174,14 @@ function mathdoku_grade_item_delete(stdClass $mathdoku): int {
 function mathdoku_update_grades(stdClass $mathdoku, int $userid = 0): void {
     global $DB;
 
-    $sql    = "SELECT id, userid, grade, timefinished
+    $sql = "SELECT id, userid, grade, timefinished
                FROM {mathdoku_attempts}
                WHERE mathdokuid = ? AND state = 'finished'
                ORDER BY timefinished ASC";
     $params = [$mathdoku->id];
 
     if ($userid > 0) {
-        $sql    = "SELECT id, userid, grade, timefinished
+        $sql = "SELECT id, userid, grade, timefinished
                    FROM {mathdoku_attempts}
                    WHERE mathdokuid = ? AND userid = ? AND state = 'finished'
                    ORDER BY timefinished ASC";
@@ -170,18 +190,18 @@ function mathdoku_update_grades(stdClass $mathdoku, int $userid = 0): void {
 
     $rows = $DB->get_records_sql($sql, $params);
 
-    $by_user = [];
+    $byuser = [];
     foreach ($rows as $row) {
-        $by_user[$row->userid][] = (float) $row->grade;
+        $byuser[$row->userid][] = (float) $row->grade;
     }
 
     $grades = [];
-    foreach ($by_user as $uid => $attempt_grades) {
+    foreach ($byuser as $uid => $attemptgrades) {
         $final = match ((int) $mathdoku->grademethod) {
-            MATHDOKU_GRADE_AVERAGE => array_sum($attempt_grades) / count($attempt_grades),
-            MATHDOKU_GRADE_LAST    => end($attempt_grades),
-            MATHDOKU_GRADE_FIRST   => reset($attempt_grades),
-            default                => max($attempt_grades),
+            MATHDOKU_GRADE_AVERAGE => array_sum($attemptgrades) / count($attemptgrades),
+            MATHDOKU_GRADE_LAST    => end($attemptgrades),
+            MATHDOKU_GRADE_FIRST   => reset($attemptgrades),
+            default                => max($attemptgrades),
         };
         $grades[$uid] = ['userid' => (int) $uid, 'rawgrade' => $final];
     }

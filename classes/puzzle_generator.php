@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Puzzle generator class for mod_mathdoku.
+ * Puzzle generator for mod_mathdoku.
  *
  * @package   mod_mathdoku
  * @copyright 2026 Álvaro Ángel Molina <luisernestomarceloberni@gmail.com>
@@ -34,14 +34,29 @@ namespace mod_mathdoku;
  */
 class puzzle_generator {
 
+    /** @var int Easy difficulty level. */
     public const EASY   = 1;
+
+    /** @var int Medium difficulty level. */
     public const MEDIUM = 2;
+
+    /** @var int Hard difficulty level. */
     public const HARD   = 3;
 
+    /** @var int Grid side length. */
     private int $size = 9;
-    private int $difficulty;
-    private array $grid = []; // [row][col] => 1-9
 
+    /** @var int Difficulty level (1=easy, 2=medium, 3=hard). */
+    private int $difficulty;
+
+    /** @var array Two-dimensional grid [row][col] => 1-9. */
+    private array $grid = [];
+
+    /**
+     * Constructor.
+     *
+     * @param int $difficulty Difficulty level (1=easy, 2=medium, 3=hard).
+     */
     public function __construct(int $difficulty) {
         $this->difficulty = max(1, min(3, $difficulty));
     }
@@ -49,15 +64,18 @@ class puzzle_generator {
     /**
      * Generate a puzzle deterministically from the given seed.
      *
-     * Returns:
-     *   size     => 9
-     *   cages    => array of cage objects (cells, op, target, show_op)
-     *   solution => 2D array [row][col] => digit
+     * Returns an associative array with keys:
+     *   - size     => 9
+     *   - cages    => array of cage objects (cells, op, target, show_op)
+     *   - solution => 2D array [row][col] => digit
+     *
+     * @param int $seed Random seed for reproducible generation.
+     * @return array Puzzle data with size, cages, and solution.
      */
     public function generate(int $seed): array {
         mt_srand($seed);
-        $this->generate_latin_square();
-        $cages = $this->create_cages();
+        $this->generatelatinsquare();
+        $cages = $this->createcages();
         return [
             'size'     => $this->size,
             'cages'    => $cages,
@@ -65,12 +83,15 @@ class puzzle_generator {
         ];
     }
 
-    // ── Latin square ──────────────────────────────────────────────────────────
-
-    private function generate_latin_square(): void {
+    /**
+     * Build the internal grid as a shuffled Latin square.
+     *
+     * @return void
+     */
+    private function generatelatinsquare(): void {
         $n = $this->size;
 
-        // Base: grid[r][c] = (r + c) % n + 1  (valid Latin square)
+        // Base: grid[r][c] = (r + c) % n + 1  (valid Latin square).
         $base = [];
         for ($r = 0; $r < $n; $r++) {
             for ($c = 0; $c < $n; $c++) {
@@ -78,9 +99,12 @@ class puzzle_generator {
             }
         }
 
-        $rows   = range(0, $n - 1); $this->fisherYates($rows);
-        $cols   = range(0, $n - 1); $this->fisherYates($cols);
-        $digits = range(1, $n);     $this->fisherYates($digits);
+        $rows   = range(0, $n - 1);
+        $this->fisheryates($rows);
+        $cols   = range(0, $n - 1);
+        $this->fisheryates($cols);
+        $digits = range(1, $n);
+        $this->fisheryates($digits);
 
         for ($r = 0; $r < $n; $r++) {
             for ($c = 0; $c < $n; $c++) {
@@ -90,7 +114,13 @@ class puzzle_generator {
         }
     }
 
-    private function fisherYates(array &$arr): void {
+    /**
+     * Shuffle an array in place using the Fisher-Yates algorithm.
+     *
+     * @param array $arr Array to shuffle (passed by reference).
+     * @return void
+     */
+    private function fisheryates(array &$arr): void {
         $n = count($arr);
         for ($i = $n - 1; $i > 0; $i--) {
             $j = mt_rand(0, $i);
@@ -98,54 +128,61 @@ class puzzle_generator {
         }
     }
 
-    // ── Cage creation ─────────────────────────────────────────────────────────
-
-    private function create_cages(): array {
+    /**
+     * Partition all grid cells into arithmetic cages.
+     *
+     * @return array Array of cage associative arrays.
+     */
+    private function createcages(): array {
         $n      = $this->size;
         $caged  = array_fill(0, $n, array_fill(0, $n, false));
         $cages  = [];
 
-        [$max_size, $ops, $hide_op_prob] = $this->difficulty_params();
+        [$maxsize, $ops, $hideopprob] = $this->difficultyparams();
 
-        $all_cells = [];
+        $allcells = [];
         for ($r = 0; $r < $n; $r++) {
             for ($c = 0; $c < $n; $c++) {
-                $all_cells[] = [$r, $c];
+                $allcells[] = [$r, $c];
             }
         }
-        $this->fisherYates($all_cells);
+        $this->fisheryates($allcells);
 
-        [$given_min, $given_max_n] = $this->given_range();
-        $given_target = ($given_min < $given_max_n) ? mt_rand($given_min, $given_max_n) : $given_min;
-        $given_count  = 0;
+        [$givenmin, $givenmaxn] = $this->givenrange();
+        $giventarget = ($givenmin < $givenmaxn) ? mt_rand($givenmin, $givenmaxn) : $givenmin;
+        $givencount  = 0;
 
-        foreach ($all_cells as [$sr, $sc]) {
+        foreach ($allcells as [$sr, $sc]) {
             if ($caged[$sr][$sc]) {
                 continue;
             }
 
-            $cage_cells          = [[$sr, $sc]];
+            $cagecells           = [[$sr, $sc]];
             $caged[$sr][$sc]     = true;
 
-            if ($given_count < $given_target) {
-                $cage          = $this->assign_operation($cage_cells, $ops, $hide_op_prob);
+            if ($givencount < $giventarget) {
+                $cage          = $this->assignoperation($cagecells, $ops, $hideopprob);
                 $cage['given'] = true;
                 $cages[]       = $cage;
-                $given_count++;
+                $givencount++;
                 continue;
             }
 
-            for ($exp = 1; $exp < $max_size; $exp++) {
-                if (mt_rand(0, 99) >= $this->expand_prob()) {
+            for ($exp = 1; $exp < $maxsize; $exp++) {
+                if (mt_rand(0, 99) >= $this->expandprob()) {
                     break;
                 }
 
                 $adjacent = [];
-                foreach ($cage_cells as [$r, $c]) {
+                foreach ($cagecells as [$r, $c]) {
                     foreach ([[0, 1], [0, -1], [1, 0], [-1, 0]] as [$dr, $dc]) {
                         $nr = $r + $dr;
                         $nc = $c + $dc;
-                        if ($nr >= 0 && $nr < $n && $nc >= 0 && $nc < $n && !$caged[$nr][$nc]) {
+                        if (
+                            $nr >= 0 && $nr < $n &&
+                            $nc >= 0 && $nc < $n &&
+                            !$caged[$nr][$nc]
+                        ) {
                             $adjacent["$nr,$nc"] = [$nr, $nc];
                         }
                     }
@@ -155,28 +192,35 @@ class puzzle_generator {
                     break;
                 }
 
-                $adjacent       = array_values($adjacent);
-                $pick           = $adjacent[mt_rand(0, count($adjacent) - 1)];
-                $cage_cells[]   = $pick;
+                $adjacent     = array_values($adjacent);
+                $pick         = $adjacent[mt_rand(0, count($adjacent) - 1)];
+                $cagecells[]  = $pick;
                 $caged[$pick[0]][$pick[1]] = true;
             }
 
-            $cage          = $this->assign_operation($cage_cells, $ops, $hide_op_prob);
+            $cage          = $this->assignoperation($cagecells, $ops, $hideopprob);
             $cage['given'] = false;
             $cages[]       = $cage;
         }
 
-        return $this->merge_singletons($cages, $ops, $max_size);
+        return $this->mergesingletons($cages, $ops, $maxsize);
     }
 
     /**
      * Merge any non-given 1-cell cage into an adjacent cage.
+     *
      * A lone cell whose answer is printed as a label gives away the solution trivially.
+     *
+     * @param array $cages   Current list of cage arrays.
+     * @param array $ops     Allowed arithmetic operators.
+     * @param int   $maxsize Maximum cage size for this difficulty.
+     * @return array Updated list of cage arrays with no isolated singletons.
      */
-    private function merge_singletons(array $cages, array $ops, int $max_size): array {
+    private function mergesingletons(array $cages, array $ops, int $maxsize): array {
         $n = $this->size;
 
-        $build_index = function (array $cages): array {
+        // Build index mapping "r,c" => cage index.
+        $buildindex = function (array $cages): array {
             $idx = [];
             foreach ($cages as $i => $cage) {
                 foreach ($cage['cells'] as [$r, $c]) {
@@ -188,32 +232,40 @@ class puzzle_generator {
 
         $changed = true;
         while ($changed) {
-            $changed   = false;
-            $cell_idx  = $build_index($cages);
+            $changed  = false;
+            $cellidx  = $buildindex($cages);
 
             foreach ($cages as $i => $cage) {
                 if (count($cage['cells']) !== 1 || !empty($cage['given'])) {
                     continue;
                 }
                 [$r, $c] = $cage['cells'][0];
-                // Pass 1: merge into a non-given neighbor with room
+
+                // Pass 1: merge into a non-given neighbor with room.
                 $ni = null;
-                foreach ([[0,1],[0,-1],[1,0],[-1,0]] as [$dr, $dc]) {
-                    $nr = $r + $dr; $nc = $c + $dc;
+                foreach ([[0, 1], [0, -1], [1, 0], [-1, 0]] as [$dr, $dc]) {
+                    $nr = $r + $dr;
+                    $nc = $c + $dc;
                     if ($nr >= 0 && $nr < $n && $nc >= 0 && $nc < $n) {
-                        $candidate = $cell_idx["$nr,$nc"] ?? null;
-                        if ($candidate !== null && $candidate !== $i
-                                && empty($cages[$candidate]['given'])
-                                && count($cages[$candidate]['cells']) < $max_size) {
+                        $candidate = $cellidx["$nr,$nc"] ?? null;
+                        if (
+                            $candidate !== null &&
+                            $candidate !== $i &&
+                            empty($cages[$candidate]['given']) &&
+                            count($cages[$candidate]['cells']) < $maxsize
+                        ) {
                             $ni = $candidate;
                             break;
                         }
                     }
                 }
                 if ($ni !== null) {
-                    // standard merge
-                    $merged          = $this->assign_operation(
-                        array_merge($cages[$ni]['cells'], $cage['cells']), $ops, 0.0);
+                    // Standard merge.
+                    $merged          = $this->assignoperation(
+                        array_merge($cages[$ni]['cells'], $cage['cells']),
+                        $ops,
+                        0.0
+                    );
                     $merged['given'] = false;
                     $cages[$ni]      = $merged;
                     unset($cages[$i]);
@@ -222,63 +274,86 @@ class puzzle_generator {
                     break;
                 }
 
-                // Pass 2: steal a border cell from a full non-given neighbor
+                // Pass 2: steal a border cell from a full non-given neighbor.
                 $stolen = false;
-                foreach ([[0,1],[0,-1],[1,0],[-1,0]] as [$dr, $dc]) {
-                    $nr = $r + $dr; $nc = $c + $dc;
-                    if ($nr < 0 || $nr >= $n || $nc < 0 || $nc >= $n) { continue; }
-                    $donor_idx = $cell_idx["$nr,$nc"] ?? null;
-                    if ($donor_idx === null || $donor_idx === $i
-                            || !empty($cages[$donor_idx]['given'])) { continue; }
+                foreach ([[0, 1], [0, -1], [1, 0], [-1, 0]] as [$dr, $dc]) {
+                    $nr = $r + $dr;
+                    $nc = $c + $dc;
+                    if ($nr < 0 || $nr >= $n || $nc < 0 || $nc >= $n) {
+                        continue;
+                    }
+                    $donoridx = $cellidx["$nr,$nc"] ?? null;
+                    if (
+                        $donoridx === null ||
+                        $donoridx === $i ||
+                        !empty($cages[$donoridx]['given'])
+                    ) {
+                        continue;
+                    }
 
-                    $donor     = $cages[$donor_idx];
+                    $donor     = $cages[$donoridx];
                     $remaining = array_values(array_filter(
-                        $donor['cells'], fn($c) => !($c[0] === $nr && $c[1] === $nc)));
+                        $donor['cells'],
+                        fn($cell) => !($cell[0] === $nr && $cell[1] === $nc)
+                    ));
 
-                    // Donor must have ≥ 2 cells left and stay connected after the steal
-                    if (count($remaining) < 2) { continue; }
-                    if (!$this->cells_connected($remaining)) { continue; }
+                    // Donor must have >= 2 cells left and stay connected after the steal.
+                    if (count($remaining) < 2) {
+                        continue;
+                    }
+                    if (!$this->cellsconnected($remaining)) {
+                        continue;
+                    }
 
-                    // Rebuild donor cage without the stolen cell
-                    $new_donor          = $this->assign_operation($remaining, $ops, 0.0);
-                    $new_donor['given'] = false;
-                    $cages[$donor_idx]  = $new_donor;
+                    // Rebuild donor cage without the stolen cell.
+                    $newdonor          = $this->assignoperation($remaining, $ops, 0.0);
+                    $newdonor['given'] = false;
+                    $cages[$donoridx]  = $newdonor;
 
-                    // Merge singleton + stolen cell into a new 2-cell cage
-                    $new_cage          = $this->assign_operation([[$r, $c], [$nr, $nc]], $ops, 0.0);
-                    $new_cage['given'] = false;
-                    $cages[$i]         = $new_cage;
+                    // Merge singleton + stolen cell into a new 2-cell cage.
+                    $newcage          = $this->assignoperation([[$r, $c], [$nr, $nc]], $ops, 0.0);
+                    $newcage['given'] = false;
+                    $cages[$i]        = $newcage;
 
                     $stolen  = true;
                     $changed = true;
                     break;
                 }
-                if ($stolen) { break; }
+                if ($stolen) {
+                    break;
+                }
 
                 // Pass 3: last resort — merge into any non-given neighbor ignoring size,
-                // or promote to given if difficulty allows it
-                [$gmin, $gmax_n] = $this->given_range();
-                $last_ni = null;
-                foreach ([[0,1],[0,-1],[1,0],[-1,0]] as [$dr, $dc]) {
-                    $nr = $r + $dr; $nc = $c + $dc;
+                // or promote to given if difficulty allows it.
+                [$gmin, $gmaxn] = $this->givenrange();
+                $lastni = null;
+                foreach ([[0, 1], [0, -1], [1, 0], [-1, 0]] as [$dr, $dc]) {
+                    $nr = $r + $dr;
+                    $nc = $c + $dc;
                     if ($nr >= 0 && $nr < $n && $nc >= 0 && $nc < $n) {
-                        $candidate = $cell_idx["$nr,$nc"] ?? null;
-                        if ($candidate !== null && $candidate !== $i
-                                && empty($cages[$candidate]['given'])) {
-                            $last_ni = $candidate;
+                        $candidate = $cellidx["$nr,$nc"] ?? null;
+                        if (
+                            $candidate !== null &&
+                            $candidate !== $i &&
+                            empty($cages[$candidate]['given'])
+                        ) {
+                            $lastni = $candidate;
                             break;
                         }
                     }
                 }
-                if ($last_ni !== null) {
-                    $merged          = $this->assign_operation(
-                        array_merge($cages[$last_ni]['cells'], $cage['cells']), $ops, 0.0);
+                if ($lastni !== null) {
+                    $merged          = $this->assignoperation(
+                        array_merge($cages[$lastni]['cells'], $cage['cells']),
+                        $ops,
+                        0.0
+                    );
                     $merged['given'] = false;
-                    $cages[$last_ni] = $merged;
+                    $cages[$lastni]  = $merged;
                     unset($cages[$i]);
                     $cages   = array_values($cages);
                 } else {
-                    // Truly surrounded by given cells — promote to given
+                    // Truly surrounded by given cells — promote to given.
                     $cages[$i]['given'] = true;
                 }
                 $changed = true;
@@ -289,16 +364,26 @@ class puzzle_generator {
         return $cages;
     }
 
-    private function cells_connected(array $cells): bool {
-        if (count($cells) <= 1) { return true; }
+    /**
+     * Check whether a set of cells forms a connected region.
+     *
+     * @param array $cells List of [row, col] pairs.
+     * @return bool True if all cells are connected, false otherwise.
+     */
+    private function cellsconnected(array $cells): bool {
+        if (count($cells) <= 1) {
+            return true;
+        }
         $set = [];
-        foreach ($cells as [$r, $c]) { $set["$r,$c"] = [$r, $c]; }
+        foreach ($cells as [$r, $c]) {
+            $set["$r,$c"] = [$r, $c];
+        }
         $start   = reset($cells);
         $visited = [$start[0] . ',' . $start[1] => true];
         $queue   = [$start];
         while (!empty($queue)) {
             [$r, $c] = array_shift($queue);
-            foreach ([[0,1],[0,-1],[1,0],[-1,0]] as [$dr, $dc]) {
+            foreach ([[0, 1], [0, -1], [1, 0], [-1, 0]] as [$dr, $dc]) {
                 $key = ($r + $dr) . ',' . ($c + $dc);
                 if (isset($set[$key]) && !isset($visited[$key])) {
                     $visited[$key] = true;
@@ -309,7 +394,15 @@ class puzzle_generator {
         return count($visited) === count($cells);
     }
 
-    private function assign_operation(array $cells, array $ops, float $hide_op_prob): array {
+    /**
+     * Choose an arithmetic operation and compute the target for a cage.
+     *
+     * @param array $cells      List of [row, col] pairs in the cage.
+     * @param array $ops        Allowed operator symbols.
+     * @param float $hideopprob Probability (0.0–1.0) of hiding the operator.
+     * @return array Cage array with keys cells, op, target, show_op.
+     */
+    private function assignoperation(array $cells, array $ops, float $hideopprob): array {
         $values = array_map(fn($cell) => $this->grid[$cell[0]][$cell[1]], $cells);
         $count  = count($cells);
 
@@ -317,14 +410,14 @@ class puzzle_generator {
             return ['cells' => $cells, 'op' => null, 'target' => $values[0], 'show_op' => true];
         }
 
-        $valid_ops = [];
+        $validops = [];
 
         if (in_array('+', $ops)) {
-            $valid_ops[] = ['+', array_sum($values)];
+            $validops[] = ['+', array_sum($values)];
         }
 
         if ($count === 2 && in_array('-', $ops)) {
-            $valid_ops[] = ['-', abs($values[0] - $values[1])];
+            $validops[] = ['-', abs($values[0] - $values[1])];
         }
 
         if (in_array('*', $ops)) {
@@ -332,35 +425,38 @@ class puzzle_generator {
             foreach ($values as $v) {
                 $prod *= $v;
             }
-            $valid_ops[] = ['*', $prod];
+            $validops[] = ['*', $prod];
         }
 
         if ($count === 2 && in_array('/', $ops)) {
             $max = max($values);
             $min = min($values);
             if ($min > 0 && $max % $min === 0) {
-                $valid_ops[] = ['/', intdiv($max, $min)];
+                $validops[] = ['/', intdiv($max, $min)];
             }
         }
 
-        if (empty($valid_ops)) {
-            $valid_ops[] = ['+', array_sum($values)];
+        if (empty($validops)) {
+            $validops[] = ['+', array_sum($values)];
         }
 
-        $chosen  = $valid_ops[mt_rand(0, count($valid_ops) - 1)];
-        $show_op = ($hide_op_prob === 0.0) || mt_rand(0, 99) >= (int) ($hide_op_prob * 100);
+        $chosen  = $validops[mt_rand(0, count($validops) - 1)];
+        $showop  = ($hideopprob === 0.0) || mt_rand(0, 99) >= (int) ($hideopprob * 100);
 
         return [
             'cells'   => $cells,
             'op'      => $chosen[0],
             'target'  => $chosen[1],
-            'show_op' => $show_op,
+            'show_op' => $showop,
         ];
     }
 
-    // ── Difficulty params ─────────────────────────────────────────────────────
-
-    private function difficulty_params(): array {
+    /**
+     * Return cage size limit, allowed operators, and hide-op probability for the current difficulty.
+     *
+     * @return array Three-element array: [maxsize, ops, hideopprob].
+     */
+    private function difficultyparams(): array {
         return match ($this->difficulty) {
             self::EASY   => [3, ['+', '-'],            0.0],
             self::MEDIUM => [4, ['+', '-', '*', '/'],  0.0],
@@ -368,7 +464,12 @@ class puzzle_generator {
         };
     }
 
-    private function expand_prob(): int {
+    /**
+     * Return the probability (as a percentage integer) of expanding a cage by one cell.
+     *
+     * @return int Expansion probability out of 100.
+     */
+    private function expandprob(): int {
         return match ($this->difficulty) {
             self::EASY   => 40,
             self::MEDIUM => 60,
@@ -376,7 +477,12 @@ class puzzle_generator {
         };
     }
 
-    private function given_range(): array {
+    /**
+     * Return the [min, max] range for the number of single-cell "given" cages.
+     *
+     * @return array Two-element array: [min, max].
+     */
+    private function givenrange(): array {
         return match ($this->difficulty) {
             self::EASY   => [2, 3],
             self::MEDIUM => [0, 1],

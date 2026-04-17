@@ -34,8 +34,6 @@ use core_privacy\local\request\transform;
 use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Privacy provider for mod_mathdoku.
  */
@@ -43,7 +41,6 @@ class provider implements
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\core_userlist_provider,
     \core_privacy\local\request\plugin\provider {
-
     /**
      * Describe the personal data stored by this plugin.
      *
@@ -51,16 +48,20 @@ class provider implements
      * @return collection
      */
     public static function get_metadata(collection $items): collection {
-        $items->add_database_table('mathdoku_attempts', [
-            'userid'       => 'privacy:metadata:mathdoku_attempts:userid',
-            'attempt'      => 'privacy:metadata:mathdoku_attempts:attempt',
-            'studentgrid'  => 'privacy:metadata:mathdoku_attempts:studentgrid',
-            'timecreated'  => 'privacy:metadata:mathdoku_attempts:timecreated',
-            'timefinished' => 'privacy:metadata:mathdoku_attempts:timefinished',
-            'state'        => 'privacy:metadata:mathdoku_attempts:state',
-            'grade'        => 'privacy:metadata:mathdoku_attempts:grade',
-            'correct'      => 'privacy:metadata:mathdoku_attempts:correct',
-        ], 'privacy:metadata:mathdoku_attempts');
+        $items->add_database_table(
+            'mathdoku_attempts',
+            [
+                'userid'       => 'privacy:metadata:mathdoku_attempts:userid',
+                'attempt'      => 'privacy:metadata:mathdoku_attempts:attempt',
+                'studentgrid'  => 'privacy:metadata:mathdoku_attempts:studentgrid',
+                'timecreated'  => 'privacy:metadata:mathdoku_attempts:timecreated',
+                'timefinished' => 'privacy:metadata:mathdoku_attempts:timefinished',
+                'state'        => 'privacy:metadata:mathdoku_attempts:state',
+                'grade'        => 'privacy:metadata:mathdoku_attempts:grade',
+                'correct'      => 'privacy:metadata:mathdoku_attempts:correct',
+            ],
+            'privacy:metadata:mathdoku_attempts'
+        );
         return $items;
     }
 

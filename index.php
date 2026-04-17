@@ -24,7 +24,7 @@
 
 require_once('../../config.php');
 
-$id     = required_param('id', PARAM_INT);
+$id = required_param('id', PARAM_INT);
 $course = $DB->get_record('course', ['id' => $id], '*', MUST_EXIST);
 
 require_course_login($course);
@@ -36,7 +36,7 @@ $PAGE->set_heading($course->fullname);
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('modulenameplural', 'mathdoku'));
 
-$modinfo   = get_fast_modinfo($course);
+$modinfo = get_fast_modinfo($course);
 $instances = $modinfo->get_instances_of('mathdoku');
 
 if (empty($instances)) {
@@ -44,14 +44,14 @@ if (empty($instances)) {
         get_string('thereareno', 'moodle', get_string('modulenameplural', 'mathdoku'))
     );
 } else {
-    $table         = new html_table();
-    $table->head   = ['#', get_string('name'), get_string('difficulty', 'mathdoku')];
-    $table->align  = ['center', 'left', 'center'];
+    $table = new html_table();
+    $table->head = ['#', get_string('name'), get_string('difficulty', 'mathdoku')];
+    $table->align = ['center', 'left', 'center'];
 
-    $diff_labels = [
-        1 => get_string('easy',   'mathdoku'),
+    $difflabels = [
+        1 => get_string('easy', 'mathdoku'),
         2 => get_string('medium', 'mathdoku'),
-        3 => get_string('hard',   'mathdoku'),
+        3 => get_string('hard', 'mathdoku'),
     ];
 
     foreach ($instances as $cm) {
@@ -59,14 +59,14 @@ if (empty($instances)) {
             continue;
         }
         $instance = $DB->get_record('mathdoku', ['id' => $cm->instance]);
-        $link     = html_writer::link(
+        $link = html_writer::link(
             new moodle_url('/mod/mathdoku/view.php', ['id' => $cm->id]),
             $cm->name
         );
         $table->data[] = [
             $cm->sectionnum,
             $link,
-            $diff_labels[$instance->difficulty] ?? '-',
+            $difflabels[$instance->difficulty] ?? '-',
         ];
     }
 

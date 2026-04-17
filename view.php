@@ -28,14 +28,14 @@ require_once('locallib.php');
 
 $id = required_param('id', PARAM_INT);
 
-$cm       = get_coursemodule_from_id('mathdoku', $id, 0, false, MUST_EXIST);
-$course   = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
+$cm = get_coursemodule_from_id('mathdoku', $id, 0, false, MUST_EXIST);
+$course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
 $mathdoku = $DB->get_record('mathdoku', ['id' => $cm->instance], '*', MUST_EXIST);
 
 require_login($course, true, $cm);
-$context    = context_module::instance($cm->id);
-$can_submit = has_capability('mod/mathdoku:submit', $context);
-$can_report = has_capability('mod/mathdoku:viewreports', $context);
+$context = context_module::instance($cm->id);
+$cansubmit = has_capability('mod/mathdoku:submit', $context);
+$canreport = has_capability('mod/mathdoku:viewreports', $context);
 require_capability('mod/mathdoku:view', $context);
 
 $PAGE->set_url('/mod/mathdoku/view.php', ['id' => $cm->id]);
@@ -43,25 +43,25 @@ $PAGE->set_title($course->shortname . ': ' . $mathdoku->name);
 $PAGE->set_heading($course->fullname);
 $PAGE->add_body_class('path-mod-mathdoku');
 
-// ── Handle POST actions ───────────────────────────────────────────────────────
+// Handle POST actions.
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_sesskey();
     $action = required_param('action', PARAM_ALPHA);
 
-    if ($action === 'submit' && $can_submit) {
+    if ($action === 'submit' && $cansubmit) {
         mathdoku_process_submission($mathdoku, $USER->id);
         redirect(new moodle_url('/mod/mathdoku/view.php', ['id' => $cm->id]));
     }
 
-    if ($action === 'save' && $can_submit) {
+    if ($action === 'save' && $cansubmit) {
         mathdoku_save_progress($mathdoku, $USER->id);
         header('Content-Type: application/json');
         echo json_encode(['status' => 'ok']);
         exit;
     }
 
-    if ($action === 'newattempt' && $can_submit) {
+    if ($action === 'newattempt' && $cansubmit) {
         if (mathdoku_can_start_new($mathdoku, $USER->id)) {
             mathdoku_start_attempt($mathdoku, $USER->id);
         }
@@ -69,12 +69,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ── Completion tracking ───────────────────────────────────────────────────────
+// Completion tracking.
 
 $completion = new completion_info($course);
 $completion->set_module_viewed($cm);
 
-// ── Page output ───────────────────────────────────────────────────────────────
+// Page output.
 
 $PAGE->requires->css('/mod/mathdoku/styles.css');
 
@@ -88,23 +88,23 @@ if ($mathdoku->intro) {
     );
 }
 
-if (!$can_submit && $can_report) {
-    $total   = $DB->count_records('mathdoku_attempts', ['mathdokuid' => $mathdoku->id, 'state' => 'finished']);
+if (!$cansubmit && $canreport) {
+    $total = $DB->count_records('mathdoku_attempts', ['mathdokuid' => $mathdoku->id, 'state' => 'finished']);
     $correct = $DB->count_records('mathdoku_attempts', ['mathdokuid' => $mathdoku->id, 'state' => 'finished', 'correct' => 1]);
     echo '<div class="mathdoku-teacher-summary">';
     echo '<p>' . get_string('attemptssummary', 'mathdoku',
             ['total' => $total, 'correct' => $correct]) . '</p>';
 
-    $method_label = [
-        MATHDOKU_GRADE_BEST    => get_string('grademethod_best',    'mathdoku'),
+    $methodlabel = [
+        MATHDOKU_GRADE_BEST    => get_string('grademethod_best', 'mathdoku'),
         MATHDOKU_GRADE_AVERAGE => get_string('grademethod_average', 'mathdoku'),
-        MATHDOKU_GRADE_LAST    => get_string('grademethod_last',    'mathdoku'),
-        MATHDOKU_GRADE_FIRST   => get_string('grademethod_first',   'mathdoku'),
+        MATHDOKU_GRADE_LAST    => get_string('grademethod_last', 'mathdoku'),
+        MATHDOKU_GRADE_FIRST   => get_string('grademethod_first', 'mathdoku'),
     ][(int) $mathdoku->grademethod] ?? '';
-    echo '<p>' . get_string('grademethod', 'mathdoku') . ': <strong>' . $method_label . '</strong></p>';
+    echo '<p>' . get_string('grademethod', 'mathdoku') . ': <strong>' . $methodlabel . '</strong></p>';
     echo '</div>';
 
-} elseif ($can_submit) {
+} else if ($cansubmit) {
     $inprogress = mathdoku_get_inprogress_attempt($mathdoku, $USER->id);
 
     if ($inprogress) {
@@ -116,7 +116,7 @@ if (!$can_submit && $can_report) {
         if ($latest) {
             mathdoku_render_result($mathdoku, $latest, $cm);
 
-        } elseif (mathdoku_can_start_new($mathdoku, $USER->id)) {
+        } else if (mathdoku_can_start_new($mathdoku, $USER->id)) {
             $attempt = mathdoku_start_attempt($mathdoku, $USER->id);
             mathdoku_render_puzzle($mathdoku, $attempt, $cm);
 

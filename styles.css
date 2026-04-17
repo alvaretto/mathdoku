@@ -61,7 +61,7 @@
 }
 
 .cell-input.cell-error {
-    color: #cc0000;
+    color: #c00;
     background: rgba(220, 0, 0, 0.12);
 }
 

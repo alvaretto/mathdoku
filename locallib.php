@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/lib.php');
 require_once(__DIR__ . '/classes/puzzle_generator.php');
 
-// ── Attempt management ────────────────────────────────────────────────────────
+// Attempt management.
 
 /**
  * Return the current in-progress attempt for a user, or null.
@@ -102,13 +102,13 @@ function mathdoku_can_start_new(stdClass $mathdoku, int $userid): bool {
 function mathdoku_start_attempt(stdClass $mathdoku, int $userid): stdClass {
     global $DB;
 
-    $attempt_number = mathdoku_count_attempts($mathdoku, $userid) + 1;
-    $seed = abs(crc32($mathdoku->id . '_' . $userid . '_' . $mathdoku->timemodified . '_' . $attempt_number));
+    $attemptnumber = mathdoku_count_attempts($mathdoku, $userid) + 1;
+    $seed = abs(crc32($mathdoku->id . '_' . $userid . '_' . $mathdoku->timemodified . '_' . $attemptnumber));
 
     $generator = new \mod_mathdoku\puzzle_generator((int) $mathdoku->difficulty);
     $puzzle    = $generator->generate($seed);
 
-    $cage_data = array_map(fn($cage) => [
+    $cagedata = array_map(fn($cage) => [
         'cells'   => $cage['cells'],
         'op'      => $cage['op'],
         'target'  => $cage['target'],
@@ -119,9 +119,9 @@ function mathdoku_start_attempt(stdClass $mathdoku, int $userid): stdClass {
     $attempt               = new stdClass();
     $attempt->mathdokuid   = $mathdoku->id;
     $attempt->userid       = $userid;
-    $attempt->attempt      = $attempt_number;
+    $attempt->attempt      = $attemptnumber;
     $attempt->puzzleseed   = $seed;
-    $attempt->puzzledata   = json_encode(['size' => $puzzle['size'], 'cages' => $cage_data]);
+    $attempt->puzzledata   = json_encode(['size' => $puzzle['size'], 'cages' => $cagedata]);
     $attempt->solution     = json_encode($puzzle['solution']);
     $attempt->studentgrid  = null;
     $attempt->timecreated  = time();
@@ -150,14 +150,14 @@ function mathdoku_process_submission(stdClass $mathdoku, int $userid): void {
         return;
     }
 
-    $puzzle_data  = json_decode($attempt->puzzledata, true);
-    $size         = (int) $puzzle_data['size'];
-    $raw          = optional_param_array('cell', [], PARAM_INT);
-    $student_grid = mathdoku_rebuild_grid($raw, $size);
-    $solution     = json_decode($attempt->solution, true);
-    $correct      = ($student_grid === $solution);
+    $puzzledata  = json_decode($attempt->puzzledata, true);
+    $size        = (int) $puzzledata['size'];
+    $raw         = optional_param_array('cell', [], PARAM_INT);
+    $studentgrid = mathdoku_rebuild_grid($raw, $size);
+    $solution    = json_decode($attempt->solution, true);
+    $correct     = ($studentgrid === $solution);
 
-    $attempt->studentgrid  = json_encode($student_grid);
+    $attempt->studentgrid  = json_encode($studentgrid);
     $attempt->timefinished = time();
     $attempt->state        = 'finished';
     $attempt->grade        = $correct ? 100.0 : 0.0;
@@ -183,8 +183,8 @@ function mathdoku_save_progress(stdClass $mathdoku, int $userid): void {
         return;
     }
 
-    $puzzle_data          = json_decode($attempt->puzzledata, true);
-    $size                 = (int) $puzzle_data['size'];
+    $puzzledata           = json_decode($attempt->puzzledata, true);
+    $size                 = (int) $puzzledata['size'];
     $raw                  = optional_param_array('cell', [], PARAM_INT);
     $attempt->studentgrid = json_encode(mathdoku_rebuild_grid($raw, $size));
     $DB->update_record('mathdoku_attempts', $attempt);
@@ -201,14 +201,14 @@ function mathdoku_rebuild_grid(array $raw, int $size): array {
     $grid = [];
     for ($r = 0; $r < $size; $r++) {
         for ($c = 0; $c < $size; $c++) {
-            $key          = "r{$r}c{$c}";
+            $key          = 'r' . $r . 'c' . $c;
             $grid[$r][$c] = isset($raw[$key]) ? (int) $raw[$key] : 0;
         }
     }
     return $grid;
 }
 
-// ── Shared grid helpers ───────────────────────────────────────────────────────
+// Shared grid helpers.
 
 /**
  * Derive a cell→cageIndex lookup from the cages array.
@@ -249,10 +249,16 @@ function mathdoku_cage_topleft(array $cage): array {
  * @return string
  */
 function mathdoku_op_symbol(?string $op): string {
-    return match ($op) { '+' => '+', '-' => '−', '*' => '×', '/' => '÷', default => '' };
+    return match ($op) {
+        '+' => '+',
+        '-' => '−',
+        '*' => '×',
+        '/' => '÷',
+        default => '',
+    };
 }
 
-// ── Interactive puzzle (AMD-rendered) ─────────────────────────────────────────
+// Interactive puzzle (AMD-rendered).
 
 /**
  * Output the HTML scaffold for the interactive puzzle and schedule the AMD render call.
@@ -264,31 +270,34 @@ function mathdoku_op_symbol(?string $op): string {
 function mathdoku_render_puzzle(stdClass $mathdoku, stdClass $attempt, stdClass $cm): void {
     global $PAGE, $OUTPUT;
 
-    $puzzle_data  = json_decode($attempt->puzzledata, true);
-    $student_grid = $attempt->studentgrid ? json_decode($attempt->studentgrid, true) : null;
-    $action_url   = (new moodle_url('/mod/mathdoku/view.php', ['id' => $cm->id]))->out(false);
+    $puzzledata  = json_decode($attempt->puzzledata, true);
+    $studentgrid = $attempt->studentgrid ? json_decode($attempt->studentgrid, true) : null;
+    $actionurl   = (new moodle_url('/mod/mathdoku/view.php', ['id' => $cm->id]))->out(false);
 
-    $max           = (int) $mathdoku->maxattempts;
-    $attempt_label = $max === 0
+    $max          = (int) $mathdoku->maxattempts;
+    $attemptlabel = $max === 0
         ? get_string('attemptunlimited', 'mathdoku', $attempt->attempt)
         : get_string('attemptof', 'mathdoku', ['current' => $attempt->attempt, 'max' => $max]);
 
     // Pass confirmMsg so JS does not contain hardcoded strings.
-    $js_data = [
-        'size'        => $puzzle_data['size'],
-        'cages'       => $puzzle_data['cages'],
-        'studentGrid' => $student_grid,
+    $jsdata = [
+        'size'        => $puzzledata['size'],
+        'cages'       => $puzzledata['cages'],
+        'studentGrid' => $studentgrid,
         'readonly'    => false,
         'confirmMsg'  => get_string('confirmsubmit', 'mathdoku'),
         'attemptId'   => (int) $attempt->id,
     ];
 
-    $PAGE->requires->js_call_amd('mod_mathdoku/mathdoku', 'render',
-        [$js_data, 'mathdoku-grid-container']);
+    $PAGE->requires->js_call_amd(
+        'mod_mathdoku/mathdoku',
+        'render',
+        [$jsdata, 'mathdoku-grid-container']
+    );
 
-    echo '<p class="mathdoku-attempt-info text-muted">' . $attempt_label . '</p>';
+    echo '<p class="mathdoku-attempt-info text-muted">' . $attemptlabel . '</p>';
     echo '<div id="mathdoku-wrapper">';
-    echo '<form id="mathdoku-form" method="post" action="' . s($action_url) . '">';
+    echo '<form id="mathdoku-form" method="post" action="' . s($actionurl) . '">';
     echo '<input type="hidden" name="sesskey" value="' . sesskey() . '">';
     echo '<input type="hidden" name="action" id="mathdoku-action" value="save">';
     echo '<div id="mathdoku-grid-container"></div>';
@@ -300,22 +309,22 @@ function mathdoku_render_puzzle(stdClass $mathdoku, stdClass $attempt, stdClass 
     echo '</div>';
 }
 
-// ── Read-only grid (PHP-rendered, no JS required) ─────────────────────────────
+// Read-only grid (PHP-rendered, no JS required).
 
 /**
  * Render a complete read-only grid as an HTML table.
  *
  * Used on the result page to show the student's submission or the solution.
  *
- * @param array $puzzle_data Decoded puzzle JSON (size, cages).
- * @param array $value_grid  2D array [row][col] => digit.
+ * @param array $puzzledata Decoded puzzle JSON (size, cages).
+ * @param array $valuegrid  2D array [row][col] => digit.
  */
-function mathdoku_render_readonly_grid(array $puzzle_data, array $value_grid): void {
-    $size   = (int) $puzzle_data['size'];
-    $cages  = $puzzle_data['cages'];
-    $ci     = mathdoku_build_cage_index($cages);
+function mathdoku_render_readonly_grid(array $puzzledata, array $valuegrid): void {
+    $size  = (int) $puzzledata['size'];
+    $cages = $puzzledata['cages'];
+    $ci    = mathdoku_build_cage_index($cages);
 
-    $colors = ['#ffd6d6','#d6f0ff','#d6ffd6','#fff0d6','#f0d6ff','#ffffd6','#d6fff0','#f0ffd6'];
+    $colors = ['#ffd6d6', '#d6f0ff', '#d6ffd6', '#fff0d6', '#f0d6ff', '#ffffd6', '#d6fff0', '#f0ffd6'];
 
     echo '<table class="mathdoku-grid" role="grid">';
     for ($r = 0; $r < $size; $r++) {
@@ -325,26 +334,30 @@ function mathdoku_render_readonly_grid(array $puzzle_data, array $value_grid): v
             $cage  = $cages[$idx];
             $color = $colors[$idx % count($colors)];
 
-            $top    = ($r === 0 || ($ci["$r,$c"] ?? -1) !== ($ci[($r-1).",$c"] ?? -2)) ? '3px solid #333' : '1px solid #bbb';
-            $right  = ($c === $size-1 || ($ci["$r,$c"] ?? -1) !== ($ci["$r,".($c+1)] ?? -2)) ? '3px solid #333' : '1px solid #bbb';
-            $bottom = ($r === $size-1 || ($ci["$r,$c"] ?? -1) !== ($ci[($r+1).",$c"] ?? -2)) ? '3px solid #333' : '1px solid #bbb';
-            $left   = ($c === 0 || ($ci["$r,$c"] ?? -1) !== ($ci["$r,".($c-1)] ?? -2)) ? '3px solid #333' : '1px solid #bbb';
+            $top    = ($r === 0 || ($ci["$r,$c"] ?? -1) !== ($ci[($r - 1) . ",$c"] ?? -2))
+                ? '3px solid #333' : '1px solid #bbb';
+            $right  = ($c === $size - 1 || ($ci["$r,$c"] ?? -1) !== ($ci["$r," . ($c + 1)] ?? -2))
+                ? '3px solid #333' : '1px solid #bbb';
+            $bottom = ($r === $size - 1 || ($ci["$r,$c"] ?? -1) !== ($ci[($r + 1) . ",$c"] ?? -2))
+                ? '3px solid #333' : '1px solid #bbb';
+            $left   = ($c === 0 || ($ci["$r,$c"] ?? -1) !== ($ci["$r," . ($c - 1)] ?? -2))
+                ? '3px solid #333' : '1px solid #bbb';
 
             $style = "background:{$color};border-top:{$top};border-right:{$right};border-bottom:{$bottom};border-left:{$left};";
 
-            $isGiven = !empty($cage['given']);
+            $isgiven = !empty($cage['given']);
             $tl      = mathdoku_cage_topleft($cage);
             $label   = '';
-            if (!$isGiven && $tl[0] === $r && $tl[1] === $c) {
+            if (!$isgiven && $tl[0] === $r && $tl[1] === $c) {
                 $label = $cage['show_op']
                     ? $cage['target'] . mathdoku_op_symbol($cage['op'])
                     : $cage['target'] . '?';
             }
 
-            $val = ($value_grid[$r][$c] ?? 0) > 0 ? $value_grid[$r][$c] : '';
+            $val = ($valuegrid[$r][$c] ?? 0) > 0 ? $valuegrid[$r][$c] : '';
 
             echo '<td style="' . $style . '">';
-            if ($isGiven) {
+            if ($isgiven) {
                 echo '<span class="cell-given">' . (int) $cage['target'] . '</span>';
             } else {
                 if ($label !== '') {
@@ -359,7 +372,7 @@ function mathdoku_render_readonly_grid(array $puzzle_data, array $value_grid): v
     echo '</table>';
 }
 
-// ── Result page ───────────────────────────────────────────────────────────────
+// Result page.
 
 /**
  * Render the result page after a student submits their attempt.
@@ -384,28 +397,28 @@ function mathdoku_render_result(stdClass $mathdoku, stdClass $attempt, stdClass 
         . get_string('youscored', 'mathdoku', number_format($attempt->grade * 5 / 100, 1))
         . '</p>';
 
-    $all_finished = $DB->get_records('mathdoku_attempts', [
+    $allfinished = $DB->get_records('mathdoku_attempts', [
         'mathdokuid' => $mathdoku->id,
         'userid'     => $attempt->userid,
         'state'      => 'finished',
     ], 'attempt ASC');
 
-    if (count($all_finished) > 1) {
-        echo mathdoku_render_attempts_summary($mathdoku, array_values($all_finished));
+    if (count($allfinished) > 1) {
+        echo mathdoku_render_attempts_summary($mathdoku, array_values($allfinished));
     }
 
     if ($attempt->studentgrid) {
-        $puzzle_data  = json_decode($attempt->puzzledata, true);
-        $student_grid = json_decode($attempt->studentgrid, true);
+        $puzzledata  = json_decode($attempt->puzzledata, true);
+        $studentgrid = json_decode($attempt->studentgrid, true);
         echo $OUTPUT->heading(get_string('yoursubmission', 'mathdoku'), 4);
-        mathdoku_render_readonly_grid($puzzle_data, $student_grid);
+        mathdoku_render_readonly_grid($puzzledata, $studentgrid);
     }
 
     if ($mathdoku->showsolution && !$attempt->correct) {
-        $puzzle_data = json_decode($attempt->puzzledata, true);
-        $solution    = json_decode($attempt->solution, true);
+        $puzzledata = json_decode($attempt->puzzledata, true);
+        $solution   = json_decode($attempt->solution, true);
         echo $OUTPUT->heading(get_string('solution', 'mathdoku'), 4);
-        mathdoku_render_readonly_grid($puzzle_data, $solution);
+        mathdoku_render_readonly_grid($puzzledata, $solution);
     }
 
     if (mathdoku_can_start_new($mathdoku, $attempt->userid)) {
@@ -424,18 +437,18 @@ function mathdoku_render_result(stdClass $mathdoku, stdClass $attempt, stdClass 
  * Build and return an HTML summary table of all finished attempts.
  *
  * @param stdClass $mathdoku
- * @param array    $finished_attempts Ordered array of finished attempt records.
+ * @param array    $finishedattempts Ordered array of finished attempt records.
  * @return string HTML fragment.
  */
-function mathdoku_render_attempts_summary(stdClass $mathdoku, array $finished_attempts): string {
-    $method_labels = [
+function mathdoku_render_attempts_summary(stdClass $mathdoku, array $finishedattempts): string {
+    $methodlabels = [
         MATHDOKU_GRADE_BEST    => get_string('grademethod_best',    'mathdoku'),
         MATHDOKU_GRADE_AVERAGE => get_string('grademethod_average', 'mathdoku'),
         MATHDOKU_GRADE_LAST    => get_string('grademethod_last',    'mathdoku'),
         MATHDOKU_GRADE_FIRST   => get_string('grademethod_first',   'mathdoku'),
     ];
 
-    $grades = array_column($finished_attempts, 'grade');
+    $grades = array_column($finishedattempts, 'grade');
     $method = (int) $mathdoku->grademethod;
     $final  = match ($method) {
         MATHDOKU_GRADE_AVERAGE => array_sum($grades) / count($grades),
@@ -449,11 +462,11 @@ function mathdoku_render_attempts_summary(stdClass $mathdoku, array $finished_at
            . '<th>' . get_string('attempt', 'mathdoku') . '</th>'
            . '<th>' . get_string('grade') . '</th>'
            . '</tr></thead><tbody>';
-    foreach ($finished_attempts as $a) {
+    foreach ($finishedattempts as $a) {
         $html .= '<tr><td>' . $a->attempt . '</td><td>' . number_format($a->grade * 5 / 100, 1) . ' / 5</td></tr>';
     }
     $html .= '</tbody></table>';
-    $html .= '<p><strong>' . ($method_labels[$method] ?? '') . ':</strong> ' . number_format($final * 5 / 100, 1) . ' / 5</p>';
+    $html .= '<p><strong>' . ($methodlabels[$method] ?? '') . ':</strong> ' . number_format($final * 5 / 100, 1) . ' / 5</p>';
     $html .= '</div>';
     return $html;
 }

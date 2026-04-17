@@ -25,12 +25,21 @@
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/course/moodleform_mod.php');
 
+/**
+ * MathDoku activity form.
+ *
+ * @package   mod_mathdoku
+ * @copyright 2026 Álvaro Ángel Molina <luisernestomarceloberni@gmail.com>
+ * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU GPL v3 or later
+ */
 class mod_mathdoku_mod_form extends moodleform_mod {
-
+    /**
+     * Defines the form fields.
+     */
     public function definition(): void {
         $mform = $this->_form;
 
-        // ── General ───────────────────────────────────────────────────────────
+        // General.
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
         $mform->addElement('text', 'name', get_string('name'), ['size' => '64']);
@@ -40,33 +49,33 @@ class mod_mathdoku_mod_form extends moodleform_mod {
 
         $this->standard_intro_elements();
 
-        // ── Puzzle settings ───────────────────────────────────────────────────
+        // Puzzle settings.
         $mform->addElement('header', 'puzzlesettings', get_string('puzzlesettings', 'mathdoku'));
 
         $difficulties = [
-            1 => get_string('easy',   'mathdoku'),
+            1 => get_string('easy', 'mathdoku'),
             2 => get_string('medium', 'mathdoku'),
-            3 => get_string('hard',   'mathdoku'),
+            3 => get_string('hard', 'mathdoku'),
         ];
         $mform->addElement('select', 'difficulty', get_string('difficulty', 'mathdoku'), $difficulties);
         $mform->setDefault('difficulty', 1);
 
-        // ── Attempts ──────────────────────────────────────────────────────────
+        // Attempts.
         $mform->addElement('header', 'attemptsettings', get_string('attemptsettings', 'mathdoku'));
 
         // maxattempts: 0 = unlimited, 1..10
-        $attempt_options = [0 => get_string('unlimited')] + array_combine(range(1, 10), range(1, 10));
-        $mform->addElement('select', 'maxattempts', get_string('maxattempts', 'mathdoku'), $attempt_options);
+        $attemptoptions = [0 => get_string('unlimited')] + array_combine(range(1, 10), range(1, 10));
+        $mform->addElement('select', 'maxattempts', get_string('maxattempts', 'mathdoku'), $attemptoptions);
         $mform->setDefault('maxattempts', 1);
         $mform->addHelpButton('maxattempts', 'maxattempts', 'mathdoku');
 
-        $grade_methods = [
-            MATHDOKU_GRADE_BEST    => get_string('grademethod_best',    'mathdoku'),
+        $grademethods = [
+            MATHDOKU_GRADE_BEST    => get_string('grademethod_best', 'mathdoku'),
             MATHDOKU_GRADE_AVERAGE => get_string('grademethod_average', 'mathdoku'),
-            MATHDOKU_GRADE_LAST    => get_string('grademethod_last',    'mathdoku'),
-            MATHDOKU_GRADE_FIRST   => get_string('grademethod_first',   'mathdoku'),
+            MATHDOKU_GRADE_LAST    => get_string('grademethod_last', 'mathdoku'),
+            MATHDOKU_GRADE_FIRST   => get_string('grademethod_first', 'mathdoku'),
         ];
-        $mform->addElement('select', 'grademethod', get_string('grademethod', 'mathdoku'), $grade_methods);
+        $mform->addElement('select', 'grademethod', get_string('grademethod', 'mathdoku'), $grademethods);
         $mform->setDefault('grademethod', MATHDOKU_GRADE_BEST);
         $mform->addHelpButton('grademethod', 'grademethod', 'mathdoku');
 
@@ -77,7 +86,7 @@ class mod_mathdoku_mod_form extends moodleform_mod {
         $mform->setDefault('showsolution', 0);
         $mform->addHelpButton('showsolution', 'showsolution', 'mathdoku');
 
-        // ── Grade / standard elements ─────────────────────────────────────────
+        // Grade / standard elements.
         $this->standard_grading_coursemodule_elements();
         $this->standard_coursemodule_elements();
         $this->add_action_buttons();

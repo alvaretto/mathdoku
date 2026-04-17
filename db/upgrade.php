@@ -15,14 +15,12 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin upgrade steps.
+ * Upgrade steps for mod_mathdoku.
  *
  * @package   mod_mathdoku
  * @copyright 2026 Álvaro Ángel Molina <luisernestomarceloberni@gmail.com>
  * @license   https://www.gnu.org/licenses/gpl-3.0.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
 
 /**
  * Execute mod_mathdoku upgrade from the given old version.
